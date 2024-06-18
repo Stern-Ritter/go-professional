@@ -32,7 +32,12 @@ func TestUnpack(t *testing.T) {
 		{input: "aaa10b", want: want{str: "", err: ErrInvalidString}},
 		{input: "aaa0b", want: want{str: "aab"}},
 		// additional from readme.md
-		{input: "qw\ne", want: want{str: "", err: ErrInvalidString}},
+		{input: "qw\ne", want: want{str: "qw\ne"}},
+		// additional from review
+		{input: "สวัสดี", want: want{str: "สวัสดี"}},
+		{input: "สวัส4ดี", want: want{str: "สวัสสสสดี"}},
+		{input: "🙃0", want: want{str: ""}},
+		{input: "🙂9", want: want{str: "🙂🙂🙂🙂🙂🙂🙂🙂🙂"}},
 	}
 
 	for _, tt := range tests {

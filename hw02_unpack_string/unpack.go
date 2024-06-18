@@ -4,53 +4,64 @@ import (
 	"errors"
 	"strconv"
 	"unicode"
+	"unicode/utf8"
+
+	"github.com/rivo/uniseg" //nolint:depguard
 )
 
 var ErrInvalidString = errors.New("invalid string")
 
 func Unpack(value string) (string, error) {
-	chars := []rune(value)
-	acc := make([]rune, 0, len(chars))
+	acc := make([]rune, 0, utf8.RuneCountInString(value))
 	lastSlashes := make([]rune, 0)
 	lastChars := make([]rune, 0)
 
-	for _, char := range chars {
+	graphemes := uniseg.NewGraphemes(value)
+	for graphemes.Next() {
+		chars := graphemes.Runes()
 		switch {
-		case char == '\\':
-			acc = append(acc, lastChars...)
-			lastChars = lastChars[:0]
-
-			if len(lastSlashes) != 0 {
-				lastChars = append(lastChars, char)
-				lastSlashes = lastSlashes[:0]
-			} else {
-				lastSlashes = append(lastSlashes, char)
-			}
-
-		case unicode.IsLetter(char):
-			acc = append(acc, lastChars...)
-			lastChars = lastChars[:0]
-
-			lastChars = append(lastChars, char)
-
-		case unicode.IsNumber(char):
-			if len(lastSlashes) == 0 && len(lastChars) == 0 {
-				return "", ErrInvalidString
-			}
-
-			if len(lastSlashes) != 0 {
-				lastChars = append(lastChars, char)
-				lastSlashes = lastSlashes[:0]
-			} else {
-				number, _ := strconv.Atoi(string(char))
-				for i := 0; i < number; i++ {
-					acc = append(acc, lastChars...)
-				}
+		case len(chars) == 1:
+			char := chars[0]
+			switch {
+			case char == '\\':
+				acc = append(acc, lastChars...)
 				lastChars = lastChars[:0]
+
+				if len(lastSlashes) != 0 {
+					lastChars = append(lastChars, char)
+					lastSlashes = lastSlashes[:0]
+				} else {
+					lastSlashes = append(lastSlashes, char)
+				}
+
+			case unicode.IsNumber(char):
+				if len(lastSlashes) == 0 && len(lastChars) == 0 {
+					return "", ErrInvalidString
+				}
+
+				if len(lastSlashes) != 0 {
+					lastChars = append(lastChars, char)
+					lastSlashes = lastSlashes[:0]
+				} else {
+					number, _ := strconv.Atoi(string(char))
+					for i := 0; i < number; i++ {
+						acc = append(acc, lastChars...)
+					}
+					lastChars = lastChars[:0]
+				}
+
+			default:
+				acc = append(acc, lastChars...)
+				lastChars = lastChars[:0]
+
+				lastChars = append(lastChars, char)
 			}
 
 		default:
-			return "", ErrInvalidString
+			acc = append(acc, lastChars...)
+			lastChars = lastChars[:0]
+
+			lastChars = append(lastChars, chars...)
 		}
 	}
 

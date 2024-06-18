@@ -2,7 +2,10 @@ module github.com/Stern-Ritter/go-professional/hw02_unpack_string
 
 go 1.22
 
-require github.com/stretchr/testify v1.9.0
+require (
+	github.com/rivo/uniseg v0.4.7
+	github.com/stretchr/testify v1.9.0
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
