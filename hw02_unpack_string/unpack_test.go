@@ -4,31 +4,48 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/require" //nolint:depguard
 )
 
 func TestUnpack(t *testing.T) {
+	type want struct {
+		str string
+		err error
+	}
 	tests := []struct {
-		input    string
-		expected string
+		input string
+		want  want
 	}{
-		{input: "a4bc2d5e", expected: "aaaabccddddde"},
-		{input: "abccd", expected: "abccd"},
-		{input: "", expected: ""},
-		{input: "aaa0b", expected: "aab"},
+		{input: "a4bc2d5e", want: want{str: "aaaabccddddde"}},
+		{input: "abccd", want: want{str: "abccd"}},
+		{input: "", want: want{str: ""}},
+		{input: "aaa0b", want: want{str: "aab"}},
 		// uncomment if task with asterisk completed
-		// {input: `qwe\4\5`, expected: `qwe45`},
-		// {input: `qwe\45`, expected: `qwe44444`},
-		// {input: `qwe\\5`, expected: `qwe\\\\\`},
-		// {input: `qwe\\\3`, expected: `qwe\3`},
+		{input: `qwe\4\5`, want: want{str: `qwe45`}},
+		{input: `qwe\45`, want: want{str: `qwe44444`}},
+		{input: `qwe\\5`, want: want{str: `qwe\\\\\`}},
+		{input: `qwe\\\3`, want: want{str: `qwe\3`}},
+		// additional from the description of the task on the otus.ru
+		{input: "abcd", want: want{str: "abcd"}},
+		{input: "3abc", want: want{str: "", err: ErrInvalidString}},
+		{input: "45", want: want{str: "", err: ErrInvalidString}},
+		{input: "aaa10b", want: want{str: "", err: ErrInvalidString}},
+		{input: "aaa0b", want: want{str: "aab"}},
+		// additional from readme.md
+		{input: "qw\ne", want: want{str: "qw\ne"}},
+		// additional from review
+		{input: "สวัสดี", want: want{str: "สวัสดี"}},
+		{input: "สวัส4ดี", want: want{str: "สวัสสสสดี"}},
+		{input: "🙃0", want: want{str: ""}},
+		{input: "🙂9", want: want{str: "🙂🙂🙂🙂🙂🙂🙂🙂🙂"}},
 	}
 
-	for _, tc := range tests {
-		tc := tc
-		t.Run(tc.input, func(t *testing.T) {
-			result, err := Unpack(tc.input)
-			require.NoError(t, err)
-			require.Equal(t, tc.expected, result)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.input, func(t *testing.T) {
+			str, err := Unpack(tt.input)
+			require.ErrorIs(t, tt.want.err, err)
+			require.Equal(t, tt.want.str, str)
 		})
 	}
 }
