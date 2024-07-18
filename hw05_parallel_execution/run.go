@@ -67,7 +67,9 @@ func startTasksProcessWorkerPool(resCh chan<- struct{}, errorCh chan<- error, ta
 	}
 }
 
-func awaitTasksComplete(interruptCh chan<- struct{}, resCh <-chan struct{}, errCh <-chan error, totalTasks int, limitErr int) error {
+func awaitTasksComplete(interruptCh chan<- struct{}, resCh <-chan struct{}, errCh <-chan error, totalTasks int,
+	limitErr int,
+) error {
 	defer close(interruptCh)
 
 	needCheckErrLimit := limitErr > 0

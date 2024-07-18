@@ -13,6 +13,7 @@ import (
 	"go.uber.org/goleak"
 )
 
+//nolint:funlen
 func TestRun(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
