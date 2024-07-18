@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 )
@@ -66,5 +67,118 @@ func TestRun(t *testing.T) {
 
 		require.Equal(t, runTasksCount, int32(tasksCount), "not all tasks were completed")
 		require.LessOrEqual(t, int64(elapsedTime), int64(sumTime/2), "tasks were run sequentially?")
+	})
+
+	t.Run("should complete all tasks when no errors received", func(t *testing.T) {
+		counter := atomic.Int64{}
+		successTask := func() error {
+			time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
+			counter.Add(1)
+			return nil
+		}
+
+		tasks := []Task{successTask, successTask, successTask}
+		err := Run(tasks, 3, 1)
+
+		expected := int64(len(tasks))
+		got := counter.Load()
+		require.NoError(t, err, "unexpected error when process tasks")
+		assert.Equal(t, expected, got, "expect completed tasks count should be: %d, got: %d",
+			expected, got)
+	})
+
+	t.Run("should complete all tasks when only one worker is used and no errors received", func(t *testing.T) {
+		counter := atomic.Int64{}
+		successTask := func() error {
+			time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
+			counter.Add(1)
+			return nil
+		}
+
+		tasks := []Task{successTask, successTask, successTask}
+		err := Run(tasks, 1, 1)
+
+		expected := int64(len(tasks))
+		got := counter.Load()
+		require.NoError(t, err, "unexpected error when process tasks")
+		assert.Equal(t, expected, got, "expect completed tasks count should be: %d, got: %d",
+			expected, got)
+	})
+
+	t.Run("should complete all tasks when error limit hasn`t been exceeded", func(t *testing.T) {
+		counter := atomic.Int64{}
+		successTask := func() error {
+			time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
+			counter.Add(1)
+			return nil
+		}
+		errorTask := func() error {
+			time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
+			counter.Add(1)
+			return errors.New("error completing task")
+		}
+
+		tasks := []Task{errorTask, errorTask, successTask}
+		err := Run(tasks, 3, 2)
+
+		expected := int64(len(tasks))
+		got := counter.Load()
+		require.NoError(t, err, "unexpected error when process tasks")
+		assert.Equal(t, expected, got, "expect completed tasks count should be: %d, got: %d",
+			expected, got)
+	})
+
+	t.Run("should return error when error limit has been exceeded", func(t *testing.T) {
+		counter := atomic.Int64{}
+		successTask := func() error {
+			time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
+			counter.Add(1)
+			return nil
+		}
+		errorTask := func() error {
+			time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
+			counter.Add(1)
+			return errors.New("error completing task")
+		}
+
+		tasks := []Task{errorTask, errorTask, successTask}
+		err := Run(tasks, 3, 1)
+
+		expected := int64(len(tasks))
+		got := counter.Load()
+		require.Error(t, err, "expect errors limit has been exceeded error")
+		assert.ErrorIs(t, err, ErrErrorsLimitExceeded,
+			"expect errors limit has been exceeded error: %v, got error: %v", ErrErrorsLimitExceeded, err)
+		assert.LessOrEqual(t, got, expected, "expect completed tasks count should be less or equal to: %d, got: %d",
+			expected, got)
+	})
+
+	t.Run("should complete all tasks when zero error limit has been used", func(t *testing.T) {
+		counter := atomic.Int64{}
+		successTask := func() error {
+			time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
+			counter.Add(1)
+			return nil
+		}
+		errorTask := func() error {
+			time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
+			counter.Add(1)
+			return errors.New("error completing task")
+		}
+
+		tasks := []Task{errorTask, errorTask, successTask}
+		err := Run(tasks, 4, 0)
+
+		expected := int64(len(tasks))
+		got := counter.Load()
+		require.NoError(t, err, "unexpected error when process tasks")
+		assert.Equal(t, expected, got, "expect completed tasks count should be: %d, got: %d",
+			expected, got)
+	})
+
+	t.Run("should correctly process empty tasks list", func(t *testing.T) {
+		tasks := make([]Task, 0)
+		err := Run(tasks, 3, 1)
+		require.NoError(t, err, "unexpected error when process tasks: %v", err)
 	})
 }
