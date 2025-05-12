@@ -3,6 +3,7 @@ package hw05parallelexecution
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 )
 
 var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
@@ -15,20 +16,21 @@ func Run(tasks []Task, n, m int) error {
 		return nil
 	}
 
+	errsLimit := int64(m)
+	useErrsLimit := errsLimit > 0
 	tasksCh := make(chan Task)
 	errsCh := make(chan error)
 	doneCh := make(chan struct{})
 	var wg sync.WaitGroup
-	errs := make([]error, 0, m)
+	var errsCount atomic.Int64
 
 	go addTasks(tasksCh, doneCh, tasks)
 	startWorkerPool(tasksCh, errsCh, doneCh, &wg, n)
 
-	useErrorsLimit := m > 0
 	go func() {
-		for err := range errsCh {
-			errs = append(errs, err)
-			if useErrorsLimit && len(errs) >= m {
+		for range errsCh {
+			errsCount.Add(1)
+			if useErrsLimit && errsCount.Load() >= errsLimit {
 				close(doneCh)
 				return
 			}
@@ -38,7 +40,7 @@ func Run(tasks []Task, n, m int) error {
 	wg.Wait()
 	close(errsCh)
 
-	if useErrorsLimit && len(errs) >= m {
+	if useErrsLimit && errsCount.Load() >= errsLimit {
 		return ErrErrorsLimitExceeded
 	}
 	return nil
