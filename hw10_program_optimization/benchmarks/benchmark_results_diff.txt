@@ -1,0 +1,15 @@
+goos: windows
+goarch: amd64
+pkg: github.com/fixme_my_friend/hw10_program_optimization
+cpu: AMD Ryzen 5 5600H with Radeon Graphics         
+                 │ benchmark_results_before.txt │     benchmark_results_after.txt     │
+                 │            sec/op            │   sec/op     vs base                │
+GetDomainStat-12                    441.5m ± 1%   173.0m ± 1%  -60.82% (p=0.000 n=10)
+
+                 │ benchmark_results_before.txt │     benchmark_results_after.txt      │
+                 │             B/op             │     B/op      vs base                │
+GetDomainStat-12                  308.41Mi ± 0%   29.32Mi ± 0%  -90.49% (p=0.000 n=10)
+
+                 │ benchmark_results_before.txt │     benchmark_results_after.txt     │
+                 │          allocs/op           │  allocs/op   vs base                │
+GetDomainStat-12                    3.045M ± 0%   1.601M ± 0%  -47.43% (p=0.000 n=10)
